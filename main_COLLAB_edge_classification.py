@@ -397,7 +397,7 @@ def main():
     if args.self_loop is not None:
         net_params['self_loop'] = True if args.self_loop=='True' else False
     if args.layer_type is not None:
-        net_params['layer_type'] = layer_type
+        net_params['layer_type'] = args.layer_type
     if args.pos_enc is not None:
         net_params['pos_enc'] = True if args.pos_enc=='True' else False
     if args.pos_enc_dim is not None:

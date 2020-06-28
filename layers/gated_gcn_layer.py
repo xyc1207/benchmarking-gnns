@@ -40,7 +40,7 @@ class GatedGCNLayer(nn.Module):
     def reduce_func(self, nodes):
         Ah_i = nodes.data['Ah']
         Bh_j = nodes.mailbox['Bh_j']
-        e = nodes.mailbox['e_ij'] 
+        e = nodes.mailbox['e_ij']
         sigma_ij = torch.sigmoid(e) # sigma_ij = sigmoid(e_ij)
         #h = Ah_i + torch.mean( sigma_ij * Bh_j, dim=1 ) # hi = Ahi + mean_j alpha_ij * Bhj 
         h = Ah_i + torch.sum( sigma_ij * Bh_j, dim=1 ) / ( torch.sum( sigma_ij, dim=1 ) + 1e-6 )  # hi = Ahi + sum_j eta_ij/sum_j' eta_ij' * Bhj <= dense attention       
@@ -57,7 +57,7 @@ class GatedGCNLayer(nn.Module):
         g.ndata['Dh'] = self.D(h)
         g.ndata['Eh'] = self.E(h) 
         g.edata['e']  = e 
-        g.edata['Ce'] = self.C(e) 
+        g.edata['Ce'] = self.C(e)
         g.update_all(self.message_func,self.reduce_func) 
         h = g.ndata['h'] # result of graph convolution
         e = g.edata['e'] # result of graph convolution
@@ -216,3 +216,138 @@ class GatedGCNLayerIsotropic(nn.Module):
                                              self.out_channels)
     
 
+class GatedGCNLayerV2(GatedGCNLayer):
+    """
+        Param: []
+    """
+    def __init__(self, input_dim, output_dim, dropout, batch_norm, residual=False):
+        super().__init__(input_dim, output_dim, dropout, batch_norm, residual)
+        self.FFN1 = nn.Linear(input_dim, 2 * input_dim, bias=True)
+        self.FFN2 = nn.Linear(2 * input_dim, output_dim, bias=True)
+
+    def reduce_func(self, nodes):
+        Ah_i = nodes.data['Ah']
+        Bh_j = nodes.mailbox['Bh_j']
+        e = nodes.mailbox['e_ij']
+        sigma_ij = torch.sigmoid(e)  # sigma_ij = sigmoid(e_ij)
+        # h = Ah_i + torch.mean( sigma_ij * Bh_j, dim=1 ) # hi = Ahi + mean_j alpha_ij * Bhj
+        h = Ah_i + torch.sum(sigma_ij * Bh_j, dim=1) / (torch.sum(sigma_ij, dim=1) + 1e-6)
+        # hi = Ahi + sum_j eta_ij/sum_j' eta_ij' * Bhj <= dense attention
+        h = self.FFN1(h)
+        h = F.relu(h)
+        h = self.FFN2(h)
+        return {'h': h }
+
+
+class GatedGCNLayerV3(GatedGCNLayer):
+    """
+        Param: []
+    """
+    def __init__(self, input_dim, output_dim, dropout, batch_norm, residual=False, layer_norm=False):
+        if batch_norm is True and layer_norm is True:
+            raise Exception("Both types of normalization are True, not allowed")
+
+        super().__init__(input_dim, output_dim, dropout, batch_norm, residual)
+        self.layer_norm = layer_norm
+        self.ln_node_h = nn.LayerNorm(output_dim)
+        self.ln_node_e = nn.LayerNorm(output_dim)
+
+    def forward(self, g, h, e):
+        h_in = h  # for residual connection
+        e_in = e  # for residual connection
+
+        g.ndata['h'] = h
+        g.ndata['Ah'] = self.A(h)
+        g.ndata['Bh'] = self.B(h)
+        g.ndata['Dh'] = self.D(h)
+        g.ndata['Eh'] = self.E(h)
+        g.edata['e'] = e
+        g.edata['Ce'] = self.C(e)
+        g.update_all(self.message_func, self.reduce_func)
+        h = g.ndata['h']  # result of graph convolution
+        e = g.edata['e']  # result of graph convolution
+
+        if self.batch_norm:
+            h = self.bn_node_h(h)  # batch normalization
+            e = self.bn_node_e(e)  # batch normalization
+        if self.layer_norm:
+            h = self.ln_node_h(h)  # batch normalization
+            e = self.ln_node_e(e)  # batch normalization
+
+        h = F.relu(h)  # non-linear activation
+        e = F.relu(e)  # non-linear activation
+
+        if self.residual:
+            h = h_in + h  # residual connection
+            e = e_in + e  # residual connection
+
+        h = F.dropout(h, self.dropout, training=self.training)
+        e = F.dropout(e, self.dropout, training=self.training)
+
+        return h, e
+
+
+class GatedGCNLayerV4(GatedGCNLayer):
+    """
+        Param: []
+    """
+    def __init__(self, input_dim, output_dim, dropout, batch_norm, residual=False, layer_norm=False):
+        if batch_norm is True and layer_norm is True:
+            raise Exception("Both types of normalization are True, not allowed")
+
+        super().__init__(input_dim, output_dim, dropout, batch_norm, residual)
+        self.layer_norm = layer_norm
+        if batch_norm:
+            h_norm = nn.BatchNorm1d
+        else:
+            h_norm = nn.LayerNorm
+
+        self.norm_h_1 = h_norm(input_dim)
+        self.norm_h_2 = h_norm(output_dim)
+        self.norm_e_1 = h_norm(input_dim)
+        self.norm_e_2 = h_norm(output_dim)
+
+        self.n_FFN1 = nn.Linear(input_dim, 2 * input_dim, bias=True)
+        self.n_FFN2 = nn.Linear(2 * input_dim, output_dim, bias=True)
+        self.e_FFN1 = nn.Linear(input_dim, 2 * input_dim, bias=True)
+        self.e_FFN2 = nn.Linear(2 * input_dim, output_dim, bias=True)
+
+    def forward(self, g, h, e):
+        h_in = h  # for residual connection
+        e_in = e  # for residual connection
+
+        g.ndata['h'] = h
+        g.ndata['Ah'] = self.A(h)
+        g.ndata['Bh'] = self.B(h)
+        g.ndata['Dh'] = self.D(h)
+        g.ndata['Eh'] = self.E(h)
+        g.edata['e'] = e
+        g.edata['Ce'] = self.C(e)
+        g.update_all(self.message_func, self.reduce_func)
+        h = g.ndata['h']  # result of graph convolution
+        e = g.edata['e']  # result of graph convolution
+
+        h += h_in
+        e += e_in
+        h = self.norm_h_1(h)  # batch normalization
+        e = self.norm_e_1(e)  # batch normalization
+
+        h_in = h
+        e_in = e
+        h = self.n_FFN1(h)
+        h = F.relu(h)
+        h = self.n_FFN2(h)
+
+        e = self.e_FFN1(e)
+        e = F.relu(e)
+        e = self.e_FFN2(e)
+
+        h += h_in
+        e += e_in
+        h = self.norm_h_2(h)  # batch normalization
+        e = self.norm_e_2(e)  # batch normalization
+
+        h = F.dropout(h, self.dropout, training=self.training)
+        e = F.dropout(e, self.dropout, training=self.training)
+
+        return h, e
