@@ -34,4 +34,7 @@ data/CSL/*.pkl
 data/CSL/*.zip
 data/CSL/*.pt
 
-
+#misc
+.idea
+.vscode
+x.txt

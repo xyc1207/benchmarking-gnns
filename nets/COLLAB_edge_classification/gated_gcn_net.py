@@ -9,8 +9,8 @@ import dgl
     An Experimental Study of Neural Networks for Variable Graphs (Xavier Bresson and Thomas Laurent, ICLR 2018)
     https://arxiv.org/pdf/1711.07553v2.pdf
 """
-from layers.gated_gcn_layer import GatedGCNLayer, GatedGCNLayerV2, GatedGCNLayerV3, GatedGCNLayerV4, \
-    GatedGCNLayerEdgeFeatOnly, GatedGCNLayerIsotropic
+from layers.gated_gcn_layer import GatedGCNLayer, GatedGCNLayerV2, GatedGCNLayerV3, GatedGCNLayerV4, GatedGCNLayerV5, \
+    GatedGCNLayerV6, GatedGCNLayerEdgeFeatOnly, GatedGCNLayerIsotropic
 from layers.mlp_readout_layer import MLPReadout
 
 
@@ -40,6 +40,8 @@ class GatedGCNNet(nn.Module):
             "edgereprfeatv2": GatedGCNLayerV2,
             "edgereprfeatv3": GatedGCNLayerV3,
             "edgereprfeatv4": GatedGCNLayerV4,
+            "edgereprfeatv5": GatedGCNLayerV5,
+            "edgereprfeatv6": GatedGCNLayerV6,
             "edgefeat": GatedGCNLayerEdgeFeatOnly,
             "isotropic": GatedGCNLayerIsotropic,
         }.get(net_params['layer_type'], GatedGCNLayer)

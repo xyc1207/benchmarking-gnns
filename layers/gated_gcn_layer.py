@@ -236,7 +236,7 @@ class GatedGCNLayerV2(GatedGCNLayer):
         h = self.FFN1(h)
         h = F.relu(h)
         h = self.FFN2(h)
-        return {'h': h }
+        return {'h': h}
 
 
 class GatedGCNLayerV3(GatedGCNLayer):
@@ -349,5 +349,110 @@ class GatedGCNLayerV4(GatedGCNLayer):
 
         h = F.dropout(h, self.dropout, training=self.training)
         e = F.dropout(e, self.dropout, training=self.training)
+
+        return h, e
+
+
+class GatedGCNLayerV5(GatedGCNLayer):
+    """
+        Param: []
+    """
+    def __init__(self, input_dim, output_dim, dropout, batch_norm, residual=False, layer_norm=False):
+        if batch_norm is True and layer_norm is True:
+            raise Exception("Both types of normalization are True, not allowed")
+        super().__init__(input_dim, output_dim, dropout, batch_norm, residual)
+        self.bn_node_h_2 = nn.BatchNorm1d(output_dim)
+        self.bn_node_e_2 = nn.BatchNorm1d(output_dim)
+
+    def forward(self, g, h, e):
+        h_in = h  # for residual connection
+        e_in = e  # for residual connection
+
+        g.ndata['h'] = h
+        g.ndata['Ah'] = self.A(h)
+        g.ndata['Bh'] = self.B(h)
+        g.ndata['Dh'] = self.D(h)
+        g.ndata['Eh'] = self.E(h)
+        g.edata['e'] = e
+        g.edata['Ce'] = self.C(e)
+        g.update_all(self.message_func, self.reduce_func)
+        h = g.ndata['h']  # result of graph convolution
+        e = g.edata['e']  # result of graph convolution
+
+        h = self.bn_node_h(h)
+        e = self.bn_node_e(e)
+        h = F.relu(h)
+        e = F.relu(e)
+
+        g.ndata['h'] = h
+        g.ndata['Ah'] = self.A(h)
+        g.ndata['Bh'] = self.B(h)
+        g.ndata['Dh'] = self.D(h)
+        g.ndata['Eh'] = self.E(h)
+        g.edata['e'] = e
+        g.edata['Ce'] = self.C(e)
+        g.update_all(self.message_func, self.reduce_func)
+        h = g.ndata['h']  # result of graph convolution
+        e = g.edata['e']  # result of graph convolution
+
+        h = self.bn_node_h_2(h)
+        e = self.bn_node_e_2(e)
+        h += h_in
+        e += e_in
+        h = F.relu(h)
+        e = F.relu(e)
+
+        return h, e
+
+
+class GatedGCNLayerV6(GatedGCNLayer):
+    """
+        Param: []
+    """
+    def __init__(self, input_dim, output_dim, dropout, batch_norm, residual=False, layer_norm=False):
+        if batch_norm is True and layer_norm is True:
+            raise Exception("Both types of normalization are True, not allowed")
+        super().__init__(input_dim, output_dim, dropout, batch_norm, residual)
+        self.bn_node_h_2 = nn.BatchNorm1d(output_dim)
+        self.bn_node_e_2 = nn.BatchNorm1d(output_dim)
+
+    def forward(self, g, h, e):
+        h_in = h  # for residual connection
+        e_in = e  # for residual connection
+
+        # first part processing
+        h = self.bn_node_h(h)
+        e = self.bn_node_e(e)
+        h = F.relu(h)
+        e = F.relu(e)
+        g.ndata['h'] = h
+        g.ndata['Ah'] = self.A(h)
+        g.ndata['Bh'] = self.B(h)
+        g.ndata['Dh'] = self.D(h)
+        g.ndata['Eh'] = self.E(h)
+        g.edata['e'] = e
+        g.edata['Ce'] = self.C(e)
+        g.update_all(self.message_func, self.reduce_func)
+        h = g.ndata['h']  # result of graph convolution
+        e = g.edata['e']  # result of graph convolution
+
+        # second part processing
+        h = self.bn_node_h_2(h)
+        e = self.bn_node_e_2(e)
+        h = F.relu(h)
+        e = F.relu(e)
+        g.ndata['h'] = h
+        g.ndata['Ah'] = self.A(h)
+        g.ndata['Bh'] = self.B(h)
+        g.ndata['Dh'] = self.D(h)
+        g.ndata['Eh'] = self.E(h)
+        g.edata['e'] = e
+        g.edata['Ce'] = self.C(e)
+        g.update_all(self.message_func, self.reduce_func)
+        h = g.ndata['h']  # result of graph convolution
+        e = g.edata['e']  # result of graph convolution
+
+        h += h_in
+        e += e_in
 
         return h, e
