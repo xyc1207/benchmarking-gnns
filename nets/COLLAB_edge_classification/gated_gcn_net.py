@@ -10,7 +10,7 @@ import dgl
     https://arxiv.org/pdf/1711.07553v2.pdf
 """
 from layers.gated_gcn_layer import GatedGCNLayer, GatedGCNLayerV2, GatedGCNLayerV3, GatedGCNLayerV4, GatedGCNLayerV5, \
-    GatedGCNLayerV6, GatedGCNLayerEdgeFeatOnly, GatedGCNLayerIsotropic
+    GatedGCNLayerV6, GatedGCNLayerV7, GatedGCNLayerEdgeFeatOnly, GatedGCNLayerIsotropic
 from layers.mlp_readout_layer import MLPReadout
 
 
@@ -42,6 +42,7 @@ class GatedGCNNet(nn.Module):
             "edgereprfeatv4": GatedGCNLayerV4,
             "edgereprfeatv5": GatedGCNLayerV5,
             "edgereprfeatv6": GatedGCNLayerV6,
+            "edgereprfeatv7": GatedGCNLayerV7,
             "edgefeat": GatedGCNLayerEdgeFeatOnly,
             "isotropic": GatedGCNLayerIsotropic,
         }.get(net_params['layer_type'], GatedGCNLayer)

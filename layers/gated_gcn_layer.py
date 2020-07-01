@@ -456,3 +456,24 @@ class GatedGCNLayerV6(GatedGCNLayer):
         e += e_in
 
         return h, e
+
+
+class GatedGCNLayerV7(GatedGCNLayer):
+    """
+        Param: []
+    """
+
+    def __init__(self, input_dim, output_dim, dropout, batch_norm, residual=False, layer_norm=False):
+        if batch_norm is True and layer_norm is True:
+            raise Exception("Both types of normalization are True, not allowed")
+        super().__init__(input_dim, output_dim, dropout, batch_norm, residual)
+
+    def reduce_func(self, nodes):
+        Ah_i = nodes.data['Ah']
+        Bh_j = nodes.mailbox['Bh_j']
+        e = nodes.mailbox['e_ij']
+        sigma_ij = torch.sigmoid(e)  # sigma_ij = sigmoid(e_ij)
+        # h = Ah_i + torch.mean( sigma_ij * Bh_j, dim=1 ) # hi = Ahi + mean_j alpha_ij * Bhj
+        h = Ah_i + torch.sum(sigma_ij * Bh_j, dim=1) / torch.sqrt(torch.sum(sigma_ij * sigma_ij,
+                                                                  dim=1) + 1e-6)  # hi = Ahi + sum_j eta_ij/sum_j' eta_ij' * Bhj <= dense attention
+        return {'h': h}
