@@ -10,6 +10,7 @@ import dgl
     https://arxiv.org/abs/1710.10903
 """
 from layers.gat_layer import GATLayer, CustomGATLayer, CustomGATLayerEdgeReprFeat, CustomGATLayerIsotropic
+from layers.gat_layer import GATLayerV1, GATLayerV2, GATLayerV3
 from layers.mlp_readout_layer import MLPReadout
 
 class GATNet(nn.Module):
@@ -28,17 +29,21 @@ class GATNet(nn.Module):
         self.residual = net_params['residual']
         self.dropout = dropout
         self.device = net_params['device']
-        
+
         self.layer_type = {
             "dgl": GATLayer,
+            "dgl-v1": GATLayerV1,
+            "dgl-v2": GATLayerV2,
+            "dgl-v3": GATLayerV3,
             "edgereprfeat": CustomGATLayerEdgeReprFeat,
             "edgefeat": CustomGATLayer,
             "isotropic": CustomGATLayerIsotropic,
         }.get(net_params['layer_type'], GATLayer)
         
         self.embedding_h = nn.Linear(in_dim, hidden_dim * num_heads)
-        
-        if self.layer_type != GATLayer:
+
+        # if self.layer_type not in [GATLayer, GATLayerV1]:
+        if not issubclass(self.layer_type, GATLayer):
             self.edge_feat = net_params['edge_feat']
             self.embedding_e = nn.Linear(in_dim_edge, hidden_dim * num_heads)
         
@@ -53,7 +58,7 @@ class GATNet(nn.Module):
         h = self.embedding_h(h.float())
         h = self.in_feat_dropout(h)
         
-        if self.layer_type == GATLayer:
+        if issubclass(self.layer_type, GATLayer):
             for conv in self.layers:
                 h = conv(g, h)
         else:

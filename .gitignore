@@ -35,6 +35,7 @@ data/CSL/*.zip
 data/CSL/*.pt
 
 #misc
-.idea
-.vscode
+.idea/
+.vscode/
+.log/
 x.txt

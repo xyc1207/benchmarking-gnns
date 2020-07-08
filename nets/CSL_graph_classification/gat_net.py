@@ -38,14 +38,13 @@ class GATNet(nn.Module):
             self.embedding_h = nn.Embedding(in_dim, hidden_dim*num_heads)
             
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
-        
+
         self.layers = nn.ModuleList([GATLayer(hidden_dim * num_heads, hidden_dim, num_heads,
                                               dropout, self.batch_norm, self.residual) for _ in range(n_layers-1)])
         self.layers.append(GATLayer(hidden_dim * num_heads, out_dim, 1,
                                     dropout, self.batch_norm, self.residual))
         self.MLP_layer = MLPReadout(out_dim, n_classes)
 
-        
     def forward(self, g, h, e, pos_enc=None):
         # input embedding
         
@@ -73,4 +72,3 @@ class GATNet(nn.Module):
         criterion = nn.CrossEntropyLoss()
         loss = criterion(pred, label)
         return loss
-       
