@@ -10,7 +10,7 @@ import dgl
     https://arxiv.org/abs/1710.10903
 """
 from layers.gat_layer import GATLayer, CustomGATLayer, CustomGATLayerEdgeReprFeat, CustomGATLayerIsotropic
-from layers.gat_layer import GATLayerV1, GATLayerV2, GATLayerV3, GATLayerV4
+from layers.gat_layer import GATLayerV1, GATLayerV2, GATLayerV3, GATLayerV4, GATLayerV5, GATLayerV6, GATLayerV7
 from layers.mlp_readout_layer import MLPReadout
 
 class GATNet(nn.Module):
@@ -36,6 +36,9 @@ class GATNet(nn.Module):
             "dgl-v2": GATLayerV2,
             "dgl-v3": GATLayerV3,
             "dgl-v4": GATLayerV4,
+            "dgl-v5": GATLayerV5,
+            "dgl-v6": GATLayerV6,
+            "dgl-v7": GATLayerV7,
             "edgereprfeat": CustomGATLayerEdgeReprFeat,
             "edgefeat": CustomGATLayer,
             "isotropic": CustomGATLayerIsotropic,

@@ -535,3 +535,170 @@ class GATLayerV4(GATLayer):
             h = h_in + h  # residual connection
 
         return h
+
+
+class GATLayerV5(GATLayer):
+    """
+    Parameters
+    ----------
+    in_dim :
+        Number of input features.
+    out_dim :
+        Number of output features.
+    num_heads : int
+        Number of heads in Multi-Head Attention.
+    dropout :
+        Required for dropout of attn and feat in GATConv
+    batch_norm :
+        boolean flag for batch_norm layer.
+    residual :
+        If True, use residual connection inside this layer. Default: ``False``.
+    activation : callable activation function/layer or None, optional.
+        If not None, applies an activation function to the updated node features.
+
+    Using dgl builtin GATConv by default:
+    https://github.com/graphdeeplearning/benchmarking-gnns/commit/206e888ecc0f8d941c54e061d5dffcc7ae2142fc
+    """
+
+    def __init__(self, in_dim, out_dim, num_heads, dropout, batch_norm, residual=False, activation=F.elu):
+        super(GATLayerV5, self).__init__(in_dim, out_dim, num_heads, dropout, batch_norm, residual, activation)
+        if self.batch_norm:
+            self.batchnorm_h = nn.BatchNorm1d(in_dim)
+
+    def forward(self, g, h):
+        h_in = h  # for residual connection
+        if self.batch_norm:
+            h = self.batchnorm_h(h)
+
+        if self.activation:
+            h = self.activation(h)
+
+        h = self.gatconv(g, h).flatten(1)
+
+        if self.residual:
+            h = h_in + h  # residual connection
+
+        return h
+
+
+class GATLayerV6(GATLayer):
+    """
+    Parameters
+    ----------
+    in_dim :
+        Number of input features.
+    out_dim :
+        Number of output features.
+    num_heads : int
+        Number of heads in Multi-Head Attention.
+    dropout :
+        Required for dropout of attn and feat in GATConv
+    batch_norm :
+        boolean flag for batch_norm layer.
+    residual :
+        If True, use residual connection inside this layer. Default: ``False``.
+    activation : callable activation function/layer or None, optional.
+        If not None, applies an activation function to the updated node features.
+
+    Using dgl builtin GATConv by default:
+    https://github.com/graphdeeplearning/benchmarking-gnns/commit/206e888ecc0f8d941c54e061d5dffcc7ae2142fc
+    """
+
+    def __init__(self, in_dim, out_dim, num_heads, dropout, batch_norm, residual=False, activation=F.elu):
+        super(GATLayerV6, self).__init__(in_dim, out_dim, num_heads, dropout, batch_norm, residual, activation)
+        self.batchnorm_h = nn.BatchNorm1d(in_dim)
+        self.use_second_loop = (in_dim == out_dim * num_heads)
+
+        if self.use_second_loop:
+            self.gatconv2 = GATConv(in_dim, out_dim, num_heads, dropout, dropout)
+            if self.batch_norm:
+                self.batchnorm_h2 = nn.BatchNorm1d(in_dim)
+
+    def forward(self, g, h):
+        h_in = h  # for residual connection
+
+        if self.batch_norm:
+            h = self.batchnorm_h(h)
+        if self.activation:
+            h = self.activation(h)
+        h = self.gatconv(g, h).flatten(1)
+
+        if self.use_second_loop:
+            if self.batch_norm:
+                h = self.batchnorm_h2(h)
+            if self.activation:
+                h = self.activation(h)
+            h = self.gatconv2(g, h).flatten(1)
+
+        if self.residual:
+            h = h_in + h  # residual connection
+
+        return h
+
+
+class GATLayerV7(GATLayer):
+    """
+    Parameters
+    ----------
+    in_dim :
+        Number of input features.
+    out_dim :
+        Number of output features.
+    num_heads : int
+        Number of heads in Multi-Head Attention.
+    dropout :
+        Required for dropout of attn and feat in GATConv
+    batch_norm :
+        boolean flag for batch_norm layer.
+    residual :
+        If True, use residual connection inside this layer. Default: ``False``.
+    activation : callable activation function/layer or None, optional.
+        If not None, applies an activation function to the updated node features.
+
+    Using dgl builtin GATConv by default:
+    https://github.com/graphdeeplearning/benchmarking-gnns/commit/206e888ecc0f8d941c54e061d5dffcc7ae2142fc
+    """
+
+    def __init__(self, in_dim, out_dim, num_heads, dropout, batch_norm, residual=False, activation=F.elu):
+        super(GATLayerV7, self).__init__(in_dim, out_dim, num_heads, dropout, batch_norm, residual, activation)
+        self.use_second_loop = (in_dim == out_dim * num_heads)
+        factor = 2 if self.use_second_loop else 1
+        self.out_dim = out_dim
+        self.in_dim = in_dim
+        self.num_heads = num_heads
+
+        self.gatconv = GATConv(in_dim, out_dim, num_heads * factor, dropout, dropout)
+
+        if self.batch_norm:
+            self.batchnorm_h = nn.BatchNorm1d(out_dim * num_heads * factor)
+
+        if self.use_second_loop:
+            self.gatconv2 = GATConv(in_dim, out_dim, num_heads, dropout, dropout)
+            if self.batch_norm:
+                self.batchnorm_h2 = nn.BatchNorm1d(out_dim * num_heads)
+
+    def forward(self, g, h):
+        h_in = h  # for residual connection
+
+        # first branch
+        h = self.gatconv(g, h).flatten(1)
+        if self.batch_norm:
+            h = self.batchnorm_h(h)
+        if self.activation:
+            h = self.activation(h)
+
+        # torch.autograd.set_detect_anomaly(True)
+        if self.use_second_loop:
+            H = h.view(-1, 2, self.out_dim * self.num_heads)
+            h2 = self.gatconv2(g, H[:, 0]).flatten(1)
+            if self.batch_norm:
+                h2 = self.batchnorm_h2(h2)
+            if self.activation:
+                h2 = self.activation(h2)
+
+            h = h2 + H[:, 1]
+
+        if self.residual:
+            h = h_in + h  # residual connection
+
+        return h
