@@ -7,6 +7,7 @@ from data.TUs import TUsDataset
 from data.SBMs import SBMsDataset
 from data.TSP import TSPDataset
 from data.COLLAB import COLLABDataset
+from data.DDI import DDIDataset
 from data.CSL import CSLDataset
 
 
@@ -41,6 +42,9 @@ def LoadData(DATASET_NAME):
     # handling for COLLAB dataset
     if DATASET_NAME == 'OGBL-COLLAB':
         return COLLABDataset(DATASET_NAME)
+
+    if DATASET_NAME == 'OGBL-DDI':
+        return DDIDataset(DATASET_NAME)
 
     # handling for the CSL (Circular Skip Links) Dataset
     if DATASET_NAME == 'CSL': 
