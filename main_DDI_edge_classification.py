@@ -34,17 +34,11 @@ class DotDict(dict):
         
 
 
-
-
-
-
 """
     IMPORTING CUSTOM MODULES/METHODS
 """
 from nets.DDI_edge_classification.load_net import gnn_model # import all GNNS
 from data.data import LoadData # import dataset
-
-
 
 
 """
@@ -179,16 +173,16 @@ def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs):
                 writer.add_scalar('train/_loss', epoch_train_loss, epoch)
                 
                 writer.add_scalar('train/_hits@10', epoch_train_hits[0]*100, epoch)
-                writer.add_scalar('train/_hits@50', epoch_train_hits[1]*100, epoch)
-                writer.add_scalar('train/_hits@100', epoch_train_hits[2]*100, epoch)
+                writer.add_scalar('train/_hits@20', epoch_train_hits[1]*100, epoch)
+                writer.add_scalar('train/_hits@30', epoch_train_hits[2]*100, epoch)
                 
                 writer.add_scalar('val/_hits@10', epoch_val_hits[0]*100, epoch)
-                writer.add_scalar('val/_hits@50', epoch_val_hits[1]*100, epoch)
-                writer.add_scalar('val/_hits@100', epoch_val_hits[2]*100, epoch)
+                writer.add_scalar('val/_hits@20', epoch_val_hits[1]*100, epoch)
+                writer.add_scalar('val/_hits@30', epoch_val_hits[2]*100, epoch)
                 
                 writer.add_scalar('test/_hits@10', epoch_test_hits[0]*100, epoch)
-                writer.add_scalar('test/_hits@50', epoch_test_hits[1]*100, epoch)
-                writer.add_scalar('test/_hits@100', epoch_test_hits[2]*100, epoch)
+                writer.add_scalar('test/_hits@20', epoch_test_hits[1]*100, epoch)
+                writer.add_scalar('test/_hits@30', epoch_test_hits[2]*100, epoch)
                 
                 writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], epoch)   
 
@@ -231,8 +225,8 @@ def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs):
     train_hits, val_hits, test_hits = evaluate_network(
         model, device, graph, train_edges, val_edges, val_edges_neg, test_edges, test_edges_neg, evaluator, params['batch_size'], epoch, monet_pseudo)
 
-    print(f"Test:\nHits@10: {test_hits[0]*100:.4f}% \nHits@50: {test_hits[1]*100:.4f}% \nHits@100: {test_hits[2]*100:.4f}% \n")
-    print(f"Train:\nHits@10: {train_hits[0]*100:.4f}% \nHits@50: {train_hits[1]*100:.4f}% \nHits@100: {train_hits[2]*100:.4f}% \n")
+    print(f"Test:\nHits@10: {test_hits[0]*100:.4f}% \nHits@20: {test_hits[1]*100:.4f}% \nHits@30: {test_hits[2]*100:.4f}% \n")
+    print(f"Train:\nHits@10: {train_hits[0]*100:.4f}% \nHits@20: {train_hits[1]*100:.4f}% \nHits@30: {train_hits[2]*100:.4f}% \n")
     print("Convergence Time (Epochs): {:.4f}".format(epoch))
     print("TOTAL TIME TAKEN: {:.4f}s".format(time.time()-t0))
     print("AVG TIME PER EPOCH: {:.4f}s".format(np.mean(per_epoch_time)))
@@ -244,7 +238,7 @@ def train_val_pipeline(MODEL_NAME, dataset, params, net_params, dirs):
     """
     with open(write_file_name + '.txt', 'w') as f:
         f.write("""Dataset: {},\nModel: {}\n\nparams={}\n\nnet_params={}\n\n{}\n\nTotal Parameters: {}\n\n
-    FINAL RESULTS\nTEST HITS@10: {:.4f}\nTEST HITS@50: {:.4f}\nTEST HITS@100: {:.4f}\nTRAIN HITS@10: {:.4f}\nTRAIN HITS@50: {:.4f}\nTRAIN HITS@100: {:.4f}\n\n
+    FINAL RESULTS\nTEST HITS@10: {:.4f}\nTEST HITS@20: {:.4f}\nTEST HITS@30: {:.4f}\nTRAIN HITS@10: {:.4f}\nTRAIN HITS@20: {:.4f}\nTRAIN HITS@30: {:.4f}\n\n
     Convergence Time (Epochs): {:.4f}\nTotal Time Taken: {:.4f}hrs\nAverage Time Per Epoch: {:.4f}s\n\n\n"""\
           .format(DATASET_NAME, MODEL_NAME, params, net_params, model, net_params['total_param'],
                   test_hits[0]*100, test_hits[1]*100, test_hits[2]*100, train_hits[0]*100, train_hits[1]*100, train_hits[2]*100,

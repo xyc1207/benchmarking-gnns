@@ -39,3 +39,4 @@ data/CSL/*.pt
 .vscode/
 .log/
 x.txt
+x.sh

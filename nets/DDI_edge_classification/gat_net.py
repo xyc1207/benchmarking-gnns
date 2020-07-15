@@ -45,6 +45,7 @@ class GATNet(nn.Module):
         }.get(net_params['layer_type'], GATLayer)
 
         self.embedding_h = torch.nn.Embedding(in_dim, hidden_dim * num_heads).to(self.device)
+        torch.nn.init.xavier_uniform_(self.embedding_h.weight)
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
         
         self.layers = nn.ModuleList([self.layer_type(hidden_dim * num_heads, hidden_dim, num_heads,
