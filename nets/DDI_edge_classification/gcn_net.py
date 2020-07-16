@@ -26,7 +26,7 @@ class GCNNet(nn.Module):
         self.residual = net_params['residual']
         self.device = net_params['device']
         
-        self.embedding_h = torch.nn.Embedding(in_dim, hidden_dim * num_heads).to(self.device)
+        self.embedding_h = torch.nn.Embedding(in_dim, hidden_dim ).to(self.device)
         torch.nn.init.xavier_uniform_(self.embedding_h.weight)
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
         
