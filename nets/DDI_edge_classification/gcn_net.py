@@ -26,7 +26,8 @@ class GCNNet(nn.Module):
         self.residual = net_params['residual']
         self.device = net_params['device']
         
-        self.embedding_h = nn.Linear(in_dim, hidden_dim)
+        self.embedding_h = torch.nn.Embedding(in_dim, hidden_dim * num_heads).to(self.device)
+        torch.nn.init.xavier_uniform_(self.embedding_h.weight)
         self.in_feat_dropout = nn.Dropout(in_feat_dropout)
         
         self.layers = nn.ModuleList([GCNLayer(hidden_dim, hidden_dim, F.relu, dropout,
@@ -34,8 +35,8 @@ class GCNNet(nn.Module):
         self.layers.append(GCNLayer(hidden_dim, out_dim, F.relu, dropout, self.batch_norm, self.residual))
         self.MLP_layer = MLPReadout(2*out_dim, 1)        
 
-    def forward(self, g, h, e):
-        h = self.embedding_h(h.float())
+    def forward(self, g):
+        h = self.embedding_h.weight
         h = self.in_feat_dropout(h)
         for conv in self.layers:
             h = conv(g, h)
